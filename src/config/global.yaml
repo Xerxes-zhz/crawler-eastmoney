@@ -1,0 +1,11 @@
+URL_API_FUND_LIST: 'http://fund.eastmoney.com/Data/Fund_JJJZ_Data.aspx'
+URL_API_FUND_NET_WORTH: 'http://api.fund.eastmoney.com/f10/lsjz'
+FUND_MAX_PAGES: 3    #100条每页
+
+MYSQL:
+  HOST: 127.0.0.1
+  USER: root
+  PASSWD: '123456'
+  PORT: 3306
+  DB: crawler_eastmoney
+  CHARSET: utf8
