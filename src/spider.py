@@ -7,6 +7,14 @@ from config.config import Config
 
 cfg_global = Config('global')
 
+#数据获取远快于数据库存数据，加个限频避免队列内存占用过大
+def time_limit(func):
+    def wrap(*args, **kwargs):
+        res = func(*args, **kwargs)
+        time.sleep(0.01)
+        return res
+
+    return wrap
 
 class Http():
     def get(url, params, headers, max_retry=0):
@@ -47,12 +55,12 @@ def get_fund_list() -> list:
         response = Http.get(url, params, headers)
         data_start = response.text.find('datas:[') + 6
         data_end = response.text.find('],count') + 1
-        list = json.loads(response.text[data_start:data_end])
-        for fund in list:
+        data_list = json.loads(response.text[data_start:data_end])
+        for fund in data_list:
             fund_list.append((fund[0],fund[1]))
-    return fund_list
+    return list(set(fund_list))
 
-
+@time_limit
 def get_net_worth(fund_code, fund_name) -> list:
     def _mock_jQuery_callback():
         return f"jQuery183{str(random()).replace('.', '')}_{int(time.time() * 1000)}"
@@ -96,15 +104,15 @@ def get_net_worth(fund_code, fund_name) -> list:
 
     format_dict_list = []
     for data_dict in data_dict_list:
-        # 跳过非交易日
-        if data_dict['JZZZL'] =='':
+        # 跳过非交易日 和没有净值的项
+        if data_dict['JZZZL'] =='' or data_dict['LJJZ']=='':
             continue
         format_dict = {
             'fund_code':fund_code,
             'fund_name':fund_name,
             'date': data_dict['FSRQ'],
-            'net_worth_unit': data_dict['DWJZ'],
-            'net_worth_sum': data_dict['LJJZ'],
+            'net_worth_unit': float(data_dict['DWJZ']),
+            'net_worth_sum': float(data_dict['LJJZ']),
         }
         format_dict_list.append(format_dict)
 
