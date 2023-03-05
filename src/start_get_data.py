@@ -26,9 +26,8 @@ def thread_data_insert_sql(dict_queue: queue, sql: FundSQL, stop_event: Event):
 def thread_data_insert_csv(dict_queue: queue, stop_event: Event):
     while True:
         # 获取队列数据
-
         (data_dict_list, fund_code) = dict_queue.get()
-        # 将队列里的净值数据加入数据库
+        # 将队列里的净值数据加入本地csv
         if fund_code is None:
             path = DOWNLOAD_DIR + f'fund.csv'
             row_list = data_dict_list
@@ -36,15 +35,16 @@ def thread_data_insert_csv(dict_queue: queue, stop_event: Event):
             path = DOWNLOAD_DIR + f'fund_{fund_code}.csv'
             row_list = []
             for data_dict in data_dict_list:
+                #清洗数据格式
                 row_list.append({
-                        'FundCode':data_dict['fund_code'],
-                        'FundName':data_dict['fund_name'],
-                        'TradingDay':data_dict['date'],
-                        'NetWorth':data_dict['net_worth_sum']
-                    }
+                    'FundCode': data_dict['fund_code'],
+                    'FundName': data_dict['fund_name'],
+                    'TradingDay': data_dict['date'],
+                    'NetWorth': data_dict['net_worth_sum']
+                }
                 )
 
-        with open(path, 'w',encoding='utf-8') as f:
+        with open(path, 'w', encoding='utf-8') as f:
             columns = list(row_list[0].keys())
             csv_writer = csv.DictWriter(f, fieldnames=columns,)
             csv_writer.writeheader()

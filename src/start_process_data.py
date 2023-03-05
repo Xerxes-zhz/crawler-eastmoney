@@ -11,18 +11,20 @@ DATA_DIR = '../data/'
 DOWNLOAD_DIR = '../download/'
 
 
+#本地从csv获取数据并存入dataframe
 def local_main():
     dict_df_fund_code = {}
     fund_list = []
-    
-    #从本地获取基金数据
-    df_fund = pd.read_csv(DOWNLOAD_DIR+'fund.csv',converters={'FundCode':str})
+
+    # 从本地获取基金数据
+    df_fund = pd.read_csv(DOWNLOAD_DIR+'fund.csv', converters={'FundCode': str})
     # 全量数据导出
     df_fund.to_csv(DATA_DIR+'fund.csv', index=False)
-    
+
     fund_list = df_fund['FundCode']
     for code in fund_list:
-        df = pd.read_csv(DOWNLOAD_DIR+f'fund_{code}.csv',converters={'FundCode':str})
+        df = pd.read_csv(
+            DOWNLOAD_DIR+f'fund_{code}.csv', converters={'FundCode': str})
         # 全量数据导出
         df.to_csv(DATA_DIR+f'fund_{code}.csv')
         dict_df_fund_code[code] = df
@@ -30,6 +32,7 @@ def local_main():
     return dict_df_fund_code, df_fund
 
 
+#从数据库获取数据并存入dataframe
 def sql_main():
     # 初始化
     sql = FundSQL()
@@ -37,7 +40,7 @@ def sql_main():
     sql_con = sql_engine.connect()
     dict_df_fund_code = {}
 
-    #从数据库获取基金数据
+    # 从数据库获取基金数据
     df_fund = pd.read_sql_table(table_name='fund', con=sql_con)
     # 全量数据导出
     df_fund.to_csv(DATA_DIR+'fund.csv', index=False)
@@ -52,23 +55,23 @@ def sql_main():
     sql.close()
     return dict_df_fund_code, df_fund
 
-# 获取字典作为容器的产品数据表，和仅有code和name的总表
 
-
+# 对字典作为容器的产品数据表，和仅有code和name的总表进行处理
 def process_main(dict_df, df_fund):
-    #子函数中使用的全局变量：dict_df, df_fund, year_set, year_list
+    # 子函数中使用的全局变量：dict_df, df_fund, year_set, year_list
+
     # 年化收益率
     def _avg_return_rate(df):
         ser_net_worth = df['NetWorth']
         len = ser_net_worth.count()
-        return (ser_net_worth.iat[len-1]/ser_net_worth.iat[0]-1)/len*252
-    # 夏普比例
+        return ((ser_net_worth.iat[len - 1] / ser_net_worth.iat[0]-1) / len) * 252
 
+    # 夏普比例
     def _sharpe(df):
         # 年 无风险利率
         un_risk_rate_year = cfg_global.config['UN_RISK_RATE_YEAR']
         # 年化波动率
-        std_return_rate_year = df['ReturnRate'].std()*np.sqrt(252)
+        std_return_rate_year = df['ReturnRate'].std() * np.sqrt(252)
         # 年化收益率
         return_rate_year = _avg_return_rate(df)
 
@@ -82,7 +85,7 @@ def process_main(dict_df, df_fund):
     def _avg_return(df):
         return round(df['Return'].mean()*252, 3)
 
-    # 回撤
+    # 最大回撤
     def _drawdown(df):
         arr = df['NetWorth'].to_numpy()
         i = 0
@@ -90,21 +93,20 @@ def process_main(dict_df, df_fund):
         _max_drawdown = -1
         if arr[0] == arr.max():
             return (arr[0]-arr.min())/arr[0]
-        while True:
-            # 后续无最大值跳出
-            if _max >= arr[i:].max() or arr[-1] == arr[i:].max():
-                break
+        while i<len(arr):
             # 假如当前是最大值，找到后续最大的
-            while arr[i] >= _max:
+            while i<len(arr) and arr[i] >= _max:
                 _max = arr[i]
                 i += 1
+            if i>=len(arr):
+                break
             # 算出当前区间回撤
             _range_drawdown = (_max-arr[i:].min())/_max
             # 如果是最大回撤更新最大回撤
             if _range_drawdown >= _max_drawdown:
                 _max_drawdown = _range_drawdown
             # 后续无最大值跳出
-            if _max >= arr[i:].max() or arr[-1] == arr[i:].max():
+            if _max >= arr[i:].max():
                 break
             # 找到后续第一个最大值
             while arr[i] < _max:
@@ -122,7 +124,8 @@ def process_main(dict_df, df_fund):
         df.at[0, 'ReturnRate'] = 0
         # 增加 年月字段
         df['Year'] = df['TradingDay'].str.split('-', expand=True)[0]
-        df['Month'] = df['Year']+ '-' + df['TradingDay'].str.split('-', expand=True)[1]
+        df['Month'] = df['Year'] + '-' + df['TradingDay'].str.split('-', expand=True)[1]
+        #取出所有涉及到的年份
         year_list = df['Year'].unique()
         year_set.update(year_list)
 
@@ -179,6 +182,7 @@ def process_main(dict_df, df_fund):
     for code in fund_list:
         # 给数据表增加字段
         _df_fund_code_init(code)
+
     year_list = list(year_set)
     year_list.sort(reverse=True)
     # 给指标总表增加字段
@@ -215,10 +219,12 @@ def process_main(dict_df, df_fund):
         ]
     print('数据处理完成')
 
+    #按指定格式输出到相应文件
     df_all_month = pd.DataFrame()
     for key in dict_month_df:
         df_all_month = pd.concat([df_all_month, dict_month_df[key]])
-        dict_month_df[key].to_csv(RESULT_DIR + 'month/' + key + '.csv', index=False)
+        dict_month_df[key].to_csv(
+            RESULT_DIR + 'month/' + key + '.csv', index=False)
 
     df_all_month.to_csv(RESULT_DIR+'fund_all_month.csv', index=False)
     df_fund.rename(columns={
@@ -228,7 +234,6 @@ def process_main(dict_df, df_fund):
     df_fund.to_csv(RESULT_DIR+'fund.csv', index=False)
 
     print('数据输出完成')
-
 
 
 if __name__ == '__main__':
@@ -241,5 +246,6 @@ if __name__ == '__main__':
         dict_df, df_fund = sql_main()
     if MODE == 'local':
         dict_df, df_fund = local_main()
+        
     # 数据处理主函数
     process_main(dict_df, df_fund)

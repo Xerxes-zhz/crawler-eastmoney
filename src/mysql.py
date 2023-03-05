@@ -103,7 +103,7 @@ class FundSQL(SQL):
     #将基金信息插入fund表
     @lock_sql
     def insert_fund(self, code, name):
-        sql_insert_fund = f"""INSERT INTO fund (
+        sql_insert_fund = f"""INSERT IGNORE INTO fund (
                 FundCode,
                 FundName
             ) VALUES(
@@ -133,7 +133,7 @@ class FundSQL(SQL):
     #将字典数据插入数据库
     @lock_sql
     def insert_fund_net_worth(self, data_dict_list, code):
-        sql_insert_net_worth = f"""INSERT INTO fund_{code} (
+        sql_insert_net_worth = f"""INSERT IGNORE INTO fund_{code} (
             FundCode,
             FundName,
             TradingDay,

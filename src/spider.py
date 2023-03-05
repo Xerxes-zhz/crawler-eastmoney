@@ -7,9 +7,8 @@ from config.config import Config
 
 cfg_global = Config('global')
 
-# 数据获取远快于数据库存数据，加个限频避免队列内存占用过大
 
-
+# 加个限频避免队列内存占用过大，也防止获取过于频繁被封ip
 def time_limit(func):
     def wrap(*args, **kwargs):
         res = func(*args, **kwargs)
@@ -18,8 +17,9 @@ def time_limit(func):
 
     return wrap
 
-
+#http类，处理请求
 class Http():
+    #get方法，放置网络不稳加上重连机制
     def get(url, params, headers, max_retry=0):
         try:
             response = requests.get(url=url, params=params, headers=headers)
@@ -57,9 +57,12 @@ def get_fund_list() -> list:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
         }
         response = Http.get(url, params, headers)
+
+        #数据切割
         data_start = response.text.find('datas:[') + 6
         data_end = response.text.find('],count') + 1
         data_list = json.loads(response.text[data_start:data_end])
+
         for fund in data_list:
             fund_list.append((fund[0], fund[1]))
     return list(set(fund_list))
@@ -92,6 +95,7 @@ def get_net_worth(fund_code, fund_name) -> list:
 
         response = Http.get(url, params, headers)
 
+        #数据切割
         text = response.text
         data_start = text.find('(')+1
         data_end = text.find(')')
@@ -105,6 +109,7 @@ def get_net_worth(fund_code, fund_name) -> list:
 
     # 通过总条数获取全部数据
     data_json = _get_api_json(1, total_count)
+    #获取历史净值列表
     data_dict_list = data_json['Data']['LSJZList']
 
     format_dict_list = []
