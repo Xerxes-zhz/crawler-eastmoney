@@ -1,6 +1,10 @@
 URL_API_FUND_LIST: 'http://fund.eastmoney.com/Data/Fund_JJJZ_Data.aspx'
 URL_API_FUND_NET_WORTH: 'http://api.fund.eastmoney.com/f10/lsjz'
-FUND_MAX_PAGES: 3    #100条每页
+FUND_MAX_PAGES: 3    #获取基金列表的页数
+FUND_PAGE_SIZE: 10 #获取基金列表每页的条数
+
+#数据处理模式，可选项：'local' 'mysql'
+MODE: local
 
 MYSQL:
   HOST: 127.0.0.1
@@ -9,3 +13,6 @@ MYSQL:
   PORT: 3306
   DB: crawler_eastmoney
   CHARSET: utf8
+  
+#无风险利率，按3%算
+UN_RISK_RATE_YEAR: 0.03

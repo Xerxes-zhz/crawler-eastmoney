@@ -7,7 +7,9 @@ from config.config import Config
 
 cfg_global = Config('global')
 
-#数据获取远快于数据库存数据，加个限频避免队列内存占用过大
+# 数据获取远快于数据库存数据，加个限频避免队列内存占用过大
+
+
 def time_limit(func):
     def wrap(*args, **kwargs):
         res = func(*args, **kwargs)
@@ -15,6 +17,7 @@ def time_limit(func):
         return res
 
     return wrap
+
 
 class Http():
     def get(url, params, headers, max_retry=0):
@@ -33,8 +36,9 @@ class Http():
 
 def get_fund_list() -> list:
     fund_list = []
-    # 开放式基金共16021条 取3页300条作为作业
+    # 开放式基金共16021条 取3页10条作为作业
     max_pages = cfg_global.config['FUND_MAX_PAGES']
+    page_size = cfg_global.config['FUND_PAGE_SIZE']
     for page in range(1, max_pages + 1):
         url = cfg_global.config['URL_API_FUND_LIST']  # 开放型基金列表url
         params = {
@@ -44,7 +48,7 @@ def get_fund_list() -> list:
             'gsid': '',
             'text': '',
             'sort': 'zdf,desc',
-            'page': f'{page},100',  # 页码，每页数量
+            'page': f'{page},{page_size}',  # 页码，每页数量
             'dt': str(time.time()*1000),  # 13位时间戳
             'atfc': '',
             'onlySale': 0
@@ -57,8 +61,9 @@ def get_fund_list() -> list:
         data_end = response.text.find('],count') + 1
         data_list = json.loads(response.text[data_start:data_end])
         for fund in data_list:
-            fund_list.append((fund[0],fund[1]))
+            fund_list.append((fund[0], fund[1]))
     return list(set(fund_list))
+
 
 @time_limit
 def get_net_worth(fund_code, fund_name) -> list:
@@ -66,7 +71,7 @@ def get_net_worth(fund_code, fund_name) -> list:
         return f"jQuery183{str(random()).replace('.', '')}_{int(time.time() * 1000)}"
 
     def _get_api_json(page_index, page_size):
-        url = cfg_global.config['URL_API_FUND_NET_WORTH']  # 基金净值
+        url = cfg_global.config['URL_API_FUND_NET_WORTH']  # 基金净值API
 
         headers = {
             'Cookie': 'qgqp_b_id=e5502b5f12094ccfbb9fab58333cec40; st_si=49210073734851; st_asi=delete; EMFUND1=null; EMFUND2=null; EMFUND3=null; EMFUND4=null; EMFUND5=null; EMFUND6=null; EMFUND7=null; EMFUND8=null; EMFUND0=null; EMFUND9=03-02 22:03:58@#$%u62DB%u5546%u4E2D%u8BC1%u767D%u9152%u6307%u6570%28LOF%29A@%23%24161725; st_pvi=03963704789141; st_sp=2021-11-10%2022%3A51%3A42; st_inirUrl=https%3A%2F%2Fwww.baidu.com%2Flink; st_sn=15; st_psi=20230302233227615-112200305283-5529533825',
@@ -93,23 +98,23 @@ def get_net_worth(fund_code, fund_name) -> list:
         _json = json.loads(text[data_start:data_end])
 
         return _json
-    
+
     # 仅获取一条数据来获取总条数
     data_json = _get_api_json(1, 1)
     total_count = data_json['TotalCount']
 
     # 通过总条数获取全部数据
-    data_json = _get_api_json(1,total_count)
+    data_json = _get_api_json(1, total_count)
     data_dict_list = data_json['Data']['LSJZList']
 
     format_dict_list = []
     for data_dict in data_dict_list:
         # 跳过非交易日 和没有净值的项
-        if data_dict['JZZZL'] =='' or data_dict['LJJZ']=='':
+        if data_dict['JZZZL'] == '' or data_dict['LJJZ'] == '':
             continue
         format_dict = {
-            'fund_code':fund_code,
-            'fund_name':fund_name,
+            'fund_code': fund_code,
+            'fund_name': fund_name,
             'date': data_dict['FSRQ'],
             'net_worth_unit': float(data_dict['DWJZ']),
             'net_worth_sum': float(data_dict['LJJZ']),
@@ -117,4 +122,3 @@ def get_net_worth(fund_code, fund_name) -> list:
         format_dict_list.append(format_dict)
 
     return format_dict_list
-
