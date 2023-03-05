@@ -4,7 +4,7 @@ FUND_MAX_PAGES: 3   #获取基金列表的页数
 FUND_PAGE_SIZE: 10  #获取基金列表每页的条数
 
 #数据处理模式，可选项：'local' 'mysql'
-MODE: mysql
+MODE: local
 
 MYSQL:
   HOST: 127.0.0.1

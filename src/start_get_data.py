@@ -27,10 +27,13 @@ def thread_data_insert_csv(dict_queue: queue, stop_event: Event):
     while True:
         # 获取队列数据
         (data_dict_list, fund_code) = dict_queue.get()
+        #为了和数据库保持一致，主键要排序
         # 将队列里的净值数据加入本地csv
         if fund_code is None:
             path = DOWNLOAD_DIR + f'fund.csv'
             row_list = data_dict_list
+            #主键排序
+            row_list = sorted(row_list, key=lambda d:d['FundCode'])
         else:
             path = DOWNLOAD_DIR + f'fund_{fund_code}.csv'
             row_list = []
@@ -43,8 +46,9 @@ def thread_data_insert_csv(dict_queue: queue, stop_event: Event):
                     'NetWorth': data_dict['net_worth_sum']
                 }
                 )
-
-        with open(path, 'w', encoding='utf-8') as f:
+            #主键排序
+            row_list = sorted(row_list, key=lambda d:d['TradingDay'])
+        with open(path, 'w', encoding='utf-8', newline='') as f:
             columns = list(row_list[0].keys())
             csv_writer = csv.DictWriter(f, fieldnames=columns,)
             csv_writer.writeheader()
